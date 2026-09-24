@@ -1,22 +1,38 @@
 from memora.memory.service import MemoryService
 from memora.memory.store import MemoryStore
 from memora.memory.retrieval import MemoryRetriever
-
 def test_service():
     store=MemoryStore()
-    #service=MemoryService(store)
-    retriever=MemoryRetriever(store)
+    service=MemoryService(store)
+
     memory=store.save_memory(
-    "The project uses PostgreSQL"
+        "The project uses PostgreSQL"
     )
-    retriever.add_memory(memory)
-    re=retriever.search("Which database are we using in the project?")
+
+    service.retriever.add_memory(memory)
+
+    re=service.retriever.search(
+        "Which database are we using in the project?"
+    )
+
     doc=re[0][0].metadata["id"]
-    assert retriever.vector_store is not None
+
+    re1=service.save_memory(
+        "The project is using Python as a language"
+    )
+
+    mem1=service.retriever.search(
+        "what language are we using for the project?"
+    )
+
+    assert any(
+        doc.metadata["id"] == re1.id
+        for doc, score in mem1
+    )
+
+    assert service.retriever.vector_store is not None
     assert doc==memory.id
-    # assert service.store== store
-    # assert isinstance(service.retriever, MemoryRetriever)
-    # assert service.retriever.store==store
+    
 def test_add_multiple_memories():
     store=MemoryStore()
     retriever=MemoryRetriever(store)
