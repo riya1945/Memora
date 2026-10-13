@@ -11,10 +11,10 @@ class MemoryService():
     def save_memory(self,content,importance,relevance,confidence):
             decision=self.policy.policy_decide(importance,relevance,confidence)
             if decision=="keep":
-                 returned_mem=self.store.save_memory(content)
+                 returned_mem=self.store.save_memory(content,importance,confidence)
                  self.retriever.add_memory(returned_mem)
             elif decision=="archive":
-                 returned_mem=self.store.save_memory(content)
+                 returned_mem=self.store.save_memory(content,importance,confidence)
                  self.store.archive_memory(returned_mem.id)
             elif decision=="forget":
                  return None     

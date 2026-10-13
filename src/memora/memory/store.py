@@ -9,14 +9,14 @@ from langchain_community.vectorstores import FAISS
 class MemoryStore():
     def __init__(self):
         self.memory:list[Memory]=[]
-    def save_memory(self,content):
+    def save_memory(self,content,importance,confidence):
         if self.memory:
             ids = [mem.id for mem in self.memory]
             new_ids=max(ids)+1
         else:
             new_ids=1    
         created_at = datetime.now()
-        new_mem=Memory(id=new_ids,content=content,created_at=created_at,status="active")
+        new_mem=Memory(id=new_ids,content=content,created_at=created_at,status="active",importance=importance,confidence=confidence)
         self.memory.append(new_mem)
         return new_mem
     def get_memory(self,memory_id):

@@ -1,21 +1,29 @@
-from memora.memory.store import save_memory
-from memora.memory.retrieval import search_memory
+from memora.memory.store import MemoryStore
+from memora.memory.retrieval import MemoryRetriever
 
 
 def test_memory_save_and_retrieve():
 
-    save_memory(
-        "The next version of Memora will use PostgreSQL."
+    store = MemoryStore()
+    retriever = MemoryRetriever(store)
+
+    memory = store.save_memory(
+        "The next version of Memora will use PostgreSQL.",
+        0.9,
+        0.95
     )
 
-    results = search_memory(
+    retriever.add_memory(memory)
+
+    results = retriever.search(
         "What database will the next version use?"
     )
 
     print("\nRetrieved:", results)
 
-    assert results != "no relevant documents"
+    assert results is not None
+    assert len(results) > 0
     assert any(
-        "PostgreSQL" in result["content"]
+        "PostgreSQL" in result[0].page_content
         for result in results
     )

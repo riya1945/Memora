@@ -6,3 +6,5 @@ class Memory(BaseModel):
     content:str
     created_at:datetime
     status:str
+    importance: float
+    confidence: float

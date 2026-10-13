@@ -3,8 +3,17 @@ from memora.memory.retrieval import mem_to_doc_runnable,MemoryRetriever
 
 def test_save_memory():
     store=MemoryStore()
-    memory=store.save_memory("The project uses PostgreSQL")
-    memory2=store.save_memory("The project uses Langchain")
+    memory = store.save_memory(
+    "The project uses PostgreSQL",
+    importance=0.9,
+    confidence=0.95
+)
+
+    memory2 = store.save_memory(
+    "The project uses Langchain",
+    importance=0.8,
+    confidence=0.9
+)
     get_mem=store.get_memory(memory2.id)
     result = store.get_memory(999)
     runn=mem_to_doc_runnable.invoke(memory2)
