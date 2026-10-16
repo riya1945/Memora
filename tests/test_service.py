@@ -47,8 +47,8 @@ def test_add_multiple_memories():
 
     mem1 = store.save_memory(
         "The project uses PostgreSQL as its database.",
-        importance=0.9,
-        confidence=0.95
+        importance=0.7,
+        confidence=0.8
     )
 
     mem2 = store.save_memory(
@@ -59,9 +59,32 @@ def test_add_multiple_memories():
 
     retriever.add_memory(mem1)
     retriever.add_memory(mem2)
+    
 
     results = retriever.search("What framework are we using?")
 
     assert results is not None
     assert len(results) > 0
     assert results[0][0].metadata["id"] == mem2.id
+
+def test_service_with_update():
+    store=MemoryStore()
+    service=MemoryService(store)
+    mem1 = store.save_memory(
+            "The project uses PostgreSQL as its database.",
+            importance=0.7,
+            confidence=0.8
+        )
+    
+    mem2 = store.save_memory(
+            "The project uses LangChain for its agent framework.",
+            importance=0.9,
+            confidence=0.95
+        )
+ 
+    updated_re=service.update_memory(mem1.id,mem2.id)
+    assert updated_re["status"]=="updated"
+    assert mem1.status=="archived"
+    assert mem2.status=="active"
+
+        

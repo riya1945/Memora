@@ -30,8 +30,17 @@ class MemoryStore():
                 mem.status="archived"
                 return mem  
         return None    
-            
 
+    
+    def update_memory(self,old_memory_id, new_memory_id):
+        old_mem=self.get_memory(old_memory_id)
+        new_mem=self.get_memory(new_memory_id)
+        if not old_mem or not new_mem:
+            return None
+        old_mem.status="archived"
+        new_mem.status="active"
+        return {"old_mem":old_mem,"new_mem":new_mem,"status":"updated"}
+    
 # def save_memory(content):
 #     """Save a new memory and add it to the vector store."""
 
@@ -85,20 +94,3 @@ class MemoryStore():
 #     )
 
 #     documents.append(document)
-
-# def update_memory(old_memory_id, new_memory_id):
-#     """Archive an old memory and activate its replacement."""
-
-#     for mem in memory:
-
-#         if mem["id"] == old_memory_id:
-#             mem["status"] = "archived"
-
-#         if mem["id"] == new_memory_id:
-#             mem["status"] = "active"
-
-#     return {
-#         "old_memory_id": old_memory_id,
-#         "new_memory_id": new_memory_id,
-#         "status": "updated"
-#     }

@@ -21,4 +21,8 @@ class MemoryService():
                       
 
             return returned_mem
+    def update_memory(self,old_memory_id,new_memory_id):
+         updated_result=self.store.update_memory(old_memory_id,new_memory_id)
+         return updated_result
+         
     

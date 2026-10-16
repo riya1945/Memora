@@ -10,6 +10,25 @@ from memora.tools.tools import (
 )
 
 
+from memora.context.budget import ContextBudget
+from memora.context.tokenizer import TokenCounter
+from memora.context.manager import ContextManager
+from memora.tools.tools import service
+
+
+context_budget = ContextBudget(
+    maximum=4096,
+    reserved=512
+)
+
+token_counter = TokenCounter()
+
+context_manager = ContextManager(
+    budget=context_budget,
+    token_counter=token_counter,
+    retriever=service.retriever
+)
+
 llm1 = HuggingFaceEndpoint(
     repo_id="openai/gpt-oss-120b",
     task="text-generation"
@@ -39,9 +58,22 @@ tool_map = {
 
 
 def run_agent(user_input):
-    user_message = HumanMessage(content=user_input)
+   selected_context = context_manager.select_context(user_input)
+   formatted_context = context_manager.format_context(selected_context)
 
+   if formatted_context:
+    prompt = f"""
+{formatted_context}
+
+Current user request:
+{user_input}
+"""
+   else:
+    prompt = user_input
+
+    user_message = HumanMessage(content=prompt)
     messages = [user_message]
+
 
     response = llm_with_tools.invoke(messages)
     messages.append(response)

@@ -1,13 +1,10 @@
 from langchain_core.tools import tool
+from memora.memory.service import MemoryService
 
-from memora.memory.store import (
-    memory,
-    save_memory as store_memory,
-    update_memory as update_memory_store
-)
-from memora.memory.retrieval import search_memory as retrieve_memory
+from memora.memory.store import MemoryStore
 
-
+store=MemoryStore()
+service=MemoryService(store)
 
 experiments = {
     1: {"model": "Random Forest", "accuracy": 91},
@@ -32,15 +29,16 @@ def get_experiment(experiment_id):
 @tool
 def search_memory(query):
     """Search the project's memory for relevant information."""
-    return retrieve_memory(query)
+    return service.retriever.search(query)
 
 @tool
 def save_memory(content):
     """Save a new piece of information to memory."""
-    return store_memory(content)
+    return service.save_memory(content, importance=0.9, relevance=0.9, confidence=0.9)
+
 
 
 @tool
 def update_memory(old_memory_id, new_memory_id):
     """Archive an old memory and activate its newer replacement."""
-    return update_memory_store(old_memory_id, new_memory_id)
+    return service.update_memory(old_memory_id, new_memory_id)
