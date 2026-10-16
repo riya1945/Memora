@@ -1,7 +1,10 @@
 from memora.memory.service import MemoryService
 from memora.memory.store import MemoryStore
 from memora.memory.retrieval import MemoryRetriever
-
+from memora.tools.tools import save_memory, search_memory, service
+from memora.context.manager import ContextManager
+from memora.context.budget import ContextBudget
+from memora.context.tokenizer import TokenCounter
 
 def test_service():
     store = MemoryStore()
@@ -87,4 +90,32 @@ def test_service_with_update():
     assert mem1.status=="archived"
     assert mem2.status=="active"
 
-        
+def test_tool_save_and_search_mem():
+    saved_memory = save_memory.invoke({
+    "content": "Memora uses PostgreSQL for persistent storage."
+})
+    search=search_memory.invoke({"query":"which database are we using for persistant storage?"})
+
+    assert saved_memory is not None      
+    assert any(
+    document.page_content == "Memora uses PostgreSQL for persistent storage."
+    for document, score in search
+)
+    
+    context_budget = ContextBudget(
+    maximum=4096,
+    reserved=512
+)
+
+    token_counter = TokenCounter()
+
+    context_manager = ContextManager(
+    budget=context_budget,
+    token_counter=token_counter,
+    retriever=service.retriever
+)
+    selected_context=context_manager.select_context("Which database does Memora use for persistent storage? ")
+    assert any(
+    item.memory.content == "Memora uses PostgreSQL for persistent storage."
+    for item in selected_context
+)
