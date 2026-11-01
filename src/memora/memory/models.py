@@ -15,6 +15,7 @@ class Memory(BaseModel):
     status: str
     importance: float
     confidence: float
+    category: str | None = None
     embedding: list[float] | None=None
     @field_validator("embedding",mode="before")
     @classmethod

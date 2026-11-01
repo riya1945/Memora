@@ -18,6 +18,8 @@ class MemoryStore:
             self.client = None
             self.owner_id = LOCAL_OWNER_ID
 
+            
+
     def save_memory(
         self,
         content: str,
@@ -26,6 +28,7 @@ class MemoryStore:
         embedding:list[float] | None= None,
         owner_id: UUID | None = None,
         project_id: UUID | None = None,
+        category: str | None=None,
     ) -> Memory:
         now = datetime.now(timezone.utc)
 
@@ -47,7 +50,9 @@ class MemoryStore:
             if project_id is not None:
                 payload["project_id"] = str(project_id)
             if embedding is not None:
-                payload["embedding"]=str(embedding)    
+                payload["embedding"]=str(embedding)   
+            if category is not None:
+                payload["category"] = category     
             response = (
                 self.client.table("memories")
                 .insert(payload)
@@ -73,6 +78,7 @@ class MemoryStore:
             status="active",
             importance=importance,
             confidence=confidence,
+            category=category
         )
 
         self.memory.append(new_memory)
@@ -104,6 +110,16 @@ class MemoryStore:
             ),
             None,
         )
+    
+    def list_categories(self)->list[str]:
+            if self.use_supabase:
+                response= self.client.table("memories").select("category").eq("status","active").execute()
+                values=[row["category"] for row in response.data]
+
+            else:
+                values=[memory.category for memory in self.memory if memory.status=="active"]
+
+            return sorted({v for v in values if v is not None})    
 
     def list_memories(
         self,
