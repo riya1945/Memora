@@ -33,10 +33,19 @@ class MemoryRetriever:
             self.vector_store = None
             return None
 
-        documents = [memory_to_document(mem) for mem in memories]
-        self.vector_store = FAISS.from_documents(
-            documents, self.embeddings
-        )
+       # documents = [memory_to_document(mem) for mem in memories]
+        pairs=[]
+        metadatas=[]
+        for mem in memories:
+            if mem.embedding:
+                vector=mem.embedding
+            else:
+                vector=self.embed_memory(mem.content)
+            pairs.append((mem.content,vector)) 
+            metadatas.append(memory_to_document(mem).metadata)
+        self.vector_store=FAISS.from_embeddings(pairs,self.embeddings,metadatas=metadatas)         
+
+
         return self.vector_store
 
     def search(self, query, k=2):

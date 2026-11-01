@@ -1,8 +1,8 @@
 
 from datetime import datetime
 from uuid import UUID
-
-from pydantic import BaseModel
+import json
+from pydantic import BaseModel,field_validator
 
 
 class Memory(BaseModel):
@@ -15,3 +15,14 @@ class Memory(BaseModel):
     status: str
     importance: float
     confidence: float
+    embedding: list[float] | None=None
+    @field_validator("embedding",mode="before")
+    @classmethod
+    def parse_embedding(cls,value):
+        if isinstance(value,str):
+            float=json.loads(value)
+            return float
+        return value
+    
+
+
