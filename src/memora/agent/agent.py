@@ -1,6 +1,4 @@
-import json
-from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
-from langchain_core.messages import HumanMessage, ToolMessage
+from langchain_core.messages import HumanMessage
 
 from memora.tools.tools import (
     search_project,
@@ -8,12 +6,15 @@ from memora.tools.tools import (
     search_memory,
     save_memory
 )
-
-
 from memora.context.budget import ContextBudget
 from memora.context.tokenizer import TokenCounter
 from memora.context.manager import ContextManager
 from memora.tools.tools import service
+
+from langgraph.graph import StateGraph, MessagesState, START
+from langgraph.prebuilt import ToolNode, tools_condition
+
+from langchain_ollama import ChatOllama
 
 
 context_budget = ContextBudget(
@@ -29,12 +30,10 @@ context_manager = ContextManager(
     retriever=service.retriever
 )
 
-llm1 = HuggingFaceEndpoint(
-    repo_id="openai/gpt-oss-120b",
-    task="text-generation"
+llm = ChatOllama(
+    model="qwen3:4b",temperature=0,num_ctx=4096
 )
 
-llm = ChatHuggingFace(llm=llm1)
 
 
 
@@ -45,7 +44,25 @@ tools = [
     save_memory
 ]
 
+tool_node=ToolNode(tools)
+
+
 llm_with_tools = llm.bind_tools(tools)
+
+def call_model(state:MessagesState):
+    response=llm_with_tools.invoke(state["messages"])
+    print("TOOL CALLS:", response.tool_calls)
+    return {"messages":[response]}
+
+stategraph=StateGraph(MessagesState)
+
+stategraph.add_node("model",call_model)
+stategraph.add_node("tools",tool_node)
+stategraph.add_edge(START,"model")
+stategraph.add_conditional_edges("model",tools_condition)
+stategraph.add_edge("tools","model")
+
+graph=stategraph.compile() # prepares the graph to be executed
 
 tool_map = {
     "search_project": search_project,
@@ -58,47 +75,20 @@ tool_map = {
 
 
 def run_agent(user_input):
-   selected_context = context_manager.select_context(user_input)
-   formatted_context = context_manager.format_context(selected_context)
+    selected_context = context_manager.select_context(user_input)
+    formatted_context = context_manager.format_context(selected_context)
 
-   if formatted_context:
-    prompt = f"""
+    if formatted_context:
+        prompt = f"""
 {formatted_context}
 
 Current user request:
 {user_input}
 """
-   else:
-    prompt = user_input
+    else:
+        prompt = user_input
 
     user_message = HumanMessage(content=prompt)
-    messages = [user_message]
-
-
-    response = llm_with_tools.invoke(messages)
-    messages.append(response)
-
-    while response.tool_calls:
-
-        for tool_call in response.tool_calls:
-
-            tool_name = tool_call["name"]
-            tool_args = tool_call["args"]
-
-            tool = tool_map[tool_name]
-
-            tool_result = tool.invoke(tool_args)
-
-            tool_message = ToolMessage(
-                content=json.dumps(tool_result),
-                tool_call_id=tool_call["id"]
-            )
-
-            messages.append(tool_message)
-
-        response = llm_with_tools.invoke(messages)
-        messages.append(response)
-
-    return response.content
-
+    content=graph.invoke({"messages": [user_message]})
+    return content["messages"][-1].content
 

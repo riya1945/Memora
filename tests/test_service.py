@@ -1,3 +1,4 @@
+
 from memora.memory.service import MemoryService
 from memora.memory.store import MemoryStore
 from memora.memory.retrieval import MemoryRetriever
@@ -6,42 +7,45 @@ from memora.context.manager import ContextManager
 from memora.context.budget import ContextBudget
 from memora.context.tokenizer import TokenCounter
 
+
 def test_service():
     store = MemoryStore()
-    service = MemoryService(store)
+    memory_service = MemoryService(store)
 
     memory = store.save_memory(
         "The project uses PostgreSQL",
         importance=0.9,
-        confidence=0.95
+        confidence=0.95,
     )
 
-    service.retriever.add_memory(memory)
+    memory_service.retriever.add_memory(memory)
 
-    results = service.retriever.search(
+    results = memory_service.retriever.search(
         "Which database are we using in the project?"
     )
 
+    assert results
+
     retrieved_memory_id = results[0][0].metadata["id"]
 
-    new_memory = service.save_memory(
+    new_memory = memory_service.save_memory(
         "The project is using Python as a language",
         importance=0.9,
         relevance=0.9,
-        confidence=0.95
+        confidence=0.95,
     )
 
-    language_results = service.retriever.search(
+    language_results = memory_service.retriever.search(
         "What language are we using for the project?"
     )
 
     assert any(
-        document.metadata["id"] == new_memory.id
+        document.metadata["id"] == str(new_memory.id)
         for document, score in language_results
     )
 
-    assert service.retriever.vector_store is not None
-    assert retrieved_memory_id == memory.id
+    assert memory_service.retriever.vector_store is not None
+    assert retrieved_memory_id == str(memory.id)
 
 
 def test_add_multiple_memories():
@@ -51,71 +55,76 @@ def test_add_multiple_memories():
     mem1 = store.save_memory(
         "The project uses PostgreSQL as its database.",
         importance=0.7,
-        confidence=0.8
+        confidence=0.8,
     )
 
     mem2 = store.save_memory(
         "The project uses LangChain for its agent framework.",
         importance=0.9,
-        confidence=0.95
+        confidence=0.95,
     )
 
     retriever.add_memory(mem1)
     retriever.add_memory(mem2)
-    
 
     results = retriever.search("What framework are we using?")
 
-    assert results is not None
-    assert len(results) > 0
-    assert results[0][0].metadata["id"] == mem2.id
+    assert results
+    assert results[0][0].metadata["id"] == str(mem2.id)
+
 
 def test_service_with_update():
-    store=MemoryStore()
-    service=MemoryService(store)
+    store = MemoryStore()
+    memory_service = MemoryService(store)
+
     mem1 = store.save_memory(
-            "The project uses PostgreSQL as its database.",
-            importance=0.7,
-            confidence=0.8
-        )
-    
+        "The project uses PostgreSQL as its database.",
+        importance=0.7,
+        confidence=0.8,
+    )
+
     mem2 = store.save_memory(
-            "The project uses LangChain for its agent framework.",
-            importance=0.9,
-            confidence=0.95
-        )
- 
-    updated_re=service.update_memory(mem1.id,mem2.id)
-    assert updated_re["status"]=="updated"
-    assert mem1.status=="archived"
-    assert mem2.status=="active"
+        "The project uses LangChain for its agent framework.",
+        importance=0.9,
+        confidence=0.95,
+    )
+
+    updated_result = memory_service.update_memory(mem1.id, mem2.id)
+
+    assert updated_result["status"] == "updated"
+    assert mem1.status == "archived"
+    assert mem2.status == "active"
+
 
 def test_tool_save_and_search_mem():
     saved_memory = save_memory.invoke({
-    "content": "Memora uses PostgreSQL for persistent storage."
-})
-    search=search_memory.invoke({"query":"which database are we using for persistant storage?"})
+        "content": "Memora uses PostgreSQL for persistent storage."
+    })
 
-    assert saved_memory is not None      
+    search_results = search_memory.invoke({
+        "query": "which database are we using for persistent storage?"
+    })
+
+    assert saved_memory is not None
     assert any(
-    document.page_content == "Memora uses PostgreSQL for persistent storage."
-    for document, score in search
-)
-    
-    context_budget = ContextBudget(
-    maximum=4096,
-    reserved=512
-)
+        item["content"] == "Memora uses PostgreSQL for persistent storage."
+        for item in search_results
+    )
 
+    context_budget = ContextBudget(maximum=4096, reserved=512)
     token_counter = TokenCounter()
 
     context_manager = ContextManager(
-    budget=context_budget,
-    token_counter=token_counter,
-    retriever=service.retriever
-)
-    selected_context=context_manager.select_context("Which database does Memora use for persistent storage? ")
+        budget=context_budget,
+        token_counter=token_counter,
+        retriever=service.retriever,
+    )
+
+    selected_context = context_manager.select_context(
+        "Which database does Memora use for persistent storage?"
+    )
+
     assert any(
-    item.memory.content == "Memora uses PostgreSQL for persistent storage."
-    for item in selected_context
-)
+        item.memory.content == "Memora uses PostgreSQL for persistent storage."
+        for item in selected_context
+    )

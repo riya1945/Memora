@@ -6,3 +6,5 @@ transformers
 pydantic
 pytest
 faiss-cpu
+supabase
+python-dotenv
