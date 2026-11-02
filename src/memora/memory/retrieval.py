@@ -26,19 +26,26 @@ class MemoryRetriever:
         result=self.embeddings.embed_query(content)
         return result  
 
-    def build_index(self):
+    def build_index(self,category:str|None=None):
         memories = self.store.list_memories(status="active")
 
+        
+        
+
+        pairs=[]
+        metadatas=[]
+
+        if category is not None:
+            memories = [mem for mem in memories if mem.category == category]
         if not memories:
             self.vector_store = None
             return None
+            
 
-       # documents = [memory_to_document(mem) for mem in memories]
-        pairs=[]
-        metadatas=[]
         for mem in memories:
             if mem.embedding:
                 vector=mem.embedding
+            
             else:
                 vector=self.embed_memory(mem.content)
             pairs.append((mem.content,vector)) 
@@ -48,9 +55,9 @@ class MemoryRetriever:
 
         return self.vector_store
 
-    def search(self, query, k=2):
+    def search(self, query, k=2, category:str| None=None):
         # Rebuild so newly saved or archived records are reflected.
-        self.build_index()
+        self.build_index(category)
 
         if self.vector_store is None:
             return []
