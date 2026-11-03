@@ -29,9 +29,14 @@ def get_experiment(experiment_id: int):
 
 
 @tool
-def search_memory(query: str):
-    """Search the project's memory for relevant information."""
-    results = service.retriever.search(query)
+def search_memory(query: str,category:str |None=None):
+    """Search memory for relevant information.
+    category: optional topic tag such as 'fitness'. Only use it if you got
+    the tag from list_categories. Leave it empty to search all memories.
+    """
+    results = service.retriever.search(query,category=category)
+    if category and not results:
+        results=service.retriever.search(query)
 
     return [
         {
@@ -43,6 +48,10 @@ def search_memory(query: str):
         for doc, score in results
     ]
 
+@tool
+def list_categories():
+    """List the topic tags that exist in memory, e.g. before filtering a search by category."""
+    return service.store.list_categories()
 
 @tool
 def save_memory(content: str):
