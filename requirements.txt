@@ -8,3 +8,8 @@ pytest
 faiss-cpu
 supabase
 python-dotenv
+langgraph
+langchain-ollama
+ollama
+uvicorn
+fastapi
