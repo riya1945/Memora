@@ -31,3 +31,22 @@ def memories(body:MemoryIn):
 @app.get("/health")
 def health():
     return {"status":"ok"}
+
+
+@app.get("/search")
+def search(q:str,category:str | None=None, k:int=5):
+    results=service.retriever.search(q,k,category)
+    return [
+            {
+                "id": doc.metadata["id"],
+                "content": doc.page_content,
+                "created_at": doc.metadata["created_at"],
+                "score": float(score),
+                "category": doc.metadata["category"]
+            }
+            for doc, score in results
+        ]
+
+@app.get("/categories")
+def categories():
+    return [{"category": c} for c in service.store.list_categories()]

@@ -11,6 +11,7 @@ def memory_to_document(memory):
             "id": str(memory.id),
             "created_at": memory.created_at.isoformat(),
             "status": memory.status,
+            "category":memory.category
         },
     )
 
