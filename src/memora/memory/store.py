@@ -226,3 +226,23 @@ class MemoryStore:
             "new_mem": new_memory,
             "status": "updated",
         }
+    def get_or_create_project(self, name: str) -> UUID:
+        if not self.use_supabase:
+            raise NotImplementedError("Projects need Supabase mode.")
+
+        response = (
+        self.client.table("projects")
+        .select("id")
+        .eq("name", name)
+        .limit(1)
+        .execute()
+    )
+        if response.data:
+            return UUID(response.data[0]["id"])
+
+        response = (
+        self.client.table("projects")
+        .insert({"name": name, "owner_id": str(self.owner_id)})
+        .execute()
+    )
+        return UUID(response.data[0]["id"])
