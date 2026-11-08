@@ -1,4 +1,5 @@
 import os
+from memora.tools.tools import service
 from pathlib import Path
 import ast
 
@@ -52,7 +53,7 @@ def parse_file(path: Path) -> dict:
 
     return result
 
-def summarise_file(info: dict) -> str:
+def summarise_file(info: dict, description: str = "") -> str:
     if "error" in info:
         return f"{info['file']} could not be parsed: {info['error']}"
 
@@ -67,5 +68,64 @@ def summarise_file(info: dict) -> str:
 
     if not parts:
         return f"{info['file']} is empty or has no functions, classes or imports."
+    pieces = [info["file"]]
+    if description:
+        pieces.append(description)
+    pieces.append("; ".join(parts) + ".")
+    return " ".join(pieces)
 
-    return f"{info['file']} " + "; ".join(parts) + "."
+def index_project(root: str, name: str) -> None:
+    root_path = Path(root)
+    project_id = service.store.get_or_create_project(name)
+
+    existing = [
+        mem for mem in service.store.list_memories(status="active")
+        if mem.project_id == project_id
+    ]
+
+    for file in list_source_files(root):
+        info = parse_file(root_path / file)
+        info["file"] = str(file)
+        description = describe_file(root_path / file)
+        summary = summarise_file(info, description=description)  
+        
+
+        # Re-scan: archive the old memory for this file
+        for mem in existing:
+            if mem.content.startswith(str(file) + " "):
+                service.store.archive_memory(mem.id)
+
+        saved = service.save_memory(
+            summary,
+            importance=0.9,
+            relevance=0.9,
+            confidence=0.9,
+            project_id=project_id,
+            category="codebase",
+        )
+        print(file, "->", "saved" if saved else "NOT saved")
+
+def describe_file(path:Path)->str:
+    try:
+        source=path.read_text(encoding="utf-8")
+        context=source[:3000]
+    except(UnicodeDecodeError):
+        return "Could not read the file"
+    if not source.strip():
+        return "Empty file"
+    prompt = f"""Describe this Python file for someone searching a codebase.
+Answer with exactly one sentence. Mention the file's role (for example: web API, database layer, tests, configuration) and its key topics.
+
+But do not start with the file name
+File name: {path.name}
+
+
+Source:
+{context}
+
+Description:
+
+/no_think"""
+    response=service.classifier.invoke(prompt)
+    return response.content.split("</think>")[-1].strip()
+    
