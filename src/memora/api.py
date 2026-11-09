@@ -1,7 +1,15 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from memora.tools.tools import service
+from fastapi import BackgroundTasks
+from memora.codespace import index_project
+
 app=FastAPI()
+
+class Indexin(BaseModel):
+    root:str
+    name:str
+
 
 class MemoryIn(BaseModel):
     content: str
@@ -9,6 +17,11 @@ class MemoryIn(BaseModel):
     relevance: float = 0.9
     confidence: float = 0.9
     category: str | None = None
+
+@app.post("/index")
+def index(body:Indexin, background_tasks:BackgroundTasks):
+    background_tasks.add_task(index_project,body.root,body.name)
+    return {"status": "started", "project": body.name}
 
 @app.post("/memories")
 def memories(body:MemoryIn):

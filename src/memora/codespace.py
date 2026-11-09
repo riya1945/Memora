@@ -3,6 +3,7 @@ from memora.tools.tools import service
 from pathlib import Path
 import ast
 
+SKIP_FILES = {"scratch_langgraph.py", "scratch_ollama.py", "test_supabase_connection.py"}
 IGNORED_DIRS = {".venv", ".git", "__pycache__", "node_modules", ".pytest_cache"}
 SOURCE_EXTENSIONS = {".py"}
 
@@ -84,11 +85,12 @@ def index_project(root: str, name: str) -> None:
     ]
 
     for file in list_source_files(root):
+        if file.name in SKIP_FILES or "context.py" in file.parts:
+            continue
         info = parse_file(root_path / file)
         info["file"] = str(file)
         description = describe_file(root_path / file)
         summary = summarise_file(info, description=description)  
-        
 
         # Re-scan: archive the old memory for this file
         for mem in existing:
@@ -103,7 +105,7 @@ def index_project(root: str, name: str) -> None:
             project_id=project_id,
             category="codebase",
         )
-        print(file, "->", "saved" if saved else "NOT saved")
+        print(file, "->", "saved" if saved.status else "NOT saved")
 
 def describe_file(path:Path)->str:
     try:
