@@ -246,3 +246,8 @@ class MemoryStore:
         .execute()
     )
         return UUID(response.data[0]["id"])
+    def list_projects(self):
+        if not self.use_supabase:
+            return []
+        response=self.client.table("projects").select("id","name").execute()
+        return response.data
