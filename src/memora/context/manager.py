@@ -19,8 +19,8 @@ class ContextManager:
         self.budget = budget
         self.retriever = retriever
 
-    def select_context(self, query):
-        results = self.retriever.search(query)
+    def select_context(self, query,category=None,exclude_category=None):
+        results = self.retriever.search(query,category=category,exclude_category=exclude_category)
 
         if not results:
             return []

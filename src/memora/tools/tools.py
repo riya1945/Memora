@@ -34,13 +34,10 @@ def search_memory(query: str,category:str |None=None,k:int=5):
     category: optional topic tag such as 'fitness'. Only use it if you got
     the tag from list_categories. Leave it empty to search all memories.
 
-    The 'codebase' category contains summaries of the project's source files. Use category='codebase' for questions about code, such as which file does what.
-
-
-    """
+    The 'codebase' category contains summaries of the project's source files. Use category='codebase' for questions about code, such as which file does what."""
     results = service.retriever.search(query,category=category,k=k)
     if category and not results:
-        results=service.retriever.search(query)
+        results=service.retriever.search(query,k=k)
 
     return [
         {

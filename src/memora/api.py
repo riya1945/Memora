@@ -37,7 +37,7 @@ def agent(body:AgentIn):
         text = f"This is a question about the codebase of project {name}. Use search_memory with category 'codebase'.\n\n{body.message}"
     else:
         text=body.message    
-    message=run_agent(text).split("</think>")[-1].strip()
+    message=run_agent(text,mode=body.mode).split("</think>")[-1].strip()
     return {"answer": message}
     
 

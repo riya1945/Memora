@@ -77,8 +77,14 @@ tool_map = {
 
 
 
-def run_agent(user_input):
-    selected_context = context_manager.select_context(user_input)
+def run_agent(user_input,mode="everyday"):
+    if mode=="code":
+        category="codebase"
+        exclude_category=None
+    else:
+        category=None
+        exclude_category="codebase"    
+    selected_context = context_manager.select_context(user_input,category=category,exclude_category=exclude_category)
     formatted_context = context_manager.format_context(selected_context)
 
     if formatted_context:

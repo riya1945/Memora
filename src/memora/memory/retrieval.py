@@ -27,7 +27,7 @@ class MemoryRetriever:
         result=self.embeddings.embed_query(content)
         return result  
 
-    def build_index(self,category:str|None=None):
+    def build_index(self,category:str|None=None,exclude_category:str | None=None):
         memories = self.store.list_memories(status="active")
 
         
@@ -38,6 +38,9 @@ class MemoryRetriever:
 
         if category is not None:
             memories = [mem for mem in memories if mem.category == category]
+        if exclude_category is not None:
+            memories = [mem for mem in memories if mem.category != exclude_category]
+
         if not memories:
             self.vector_store = None
             return None
@@ -56,9 +59,9 @@ class MemoryRetriever:
 
         return self.vector_store
 
-    def search(self, query, k=2, category:str| None=None):
+    def search(self, query, k=2, category:str| None=None,exclude_category:str|None=None):
         # Rebuild so newly saved or archived records are reflected.
-        self.build_index(category)
+        self.build_index(category,exclude_category)
 
         if self.vector_store is None:
             return []
