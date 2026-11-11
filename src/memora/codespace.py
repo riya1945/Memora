@@ -6,7 +6,7 @@ import ast
 SKIP_FILES = {"scratch_langgraph.py", "scratch_ollama.py", "test_supabase_connection.py"}
 IGNORED_DIRS = {".venv", ".git", "__pycache__", "node_modules", ".pytest_cache"}
 SOURCE_EXTENSIONS = {".py"}
-
+BLOCKED={".env",".git",".venv"}
 
 def list_source_files(root: str) -> list[Path]:
     root_path = Path(root)
@@ -130,4 +130,36 @@ Description:
 /no_think"""
     response=service.classifier.invoke(prompt)
     return response.content.split("</think>")[-1].strip()
-    
+
+def safe_path(root:str,user_path:str)->Path:
+    root_path = Path(root).resolve()
+    target = (root_path / user_path).resolve()
+
+    if not target.is_relative_to(root_path):
+        raise ValueError("Path is outside the project")
+
+    rel = target.relative_to(root_path)
+    if any(part in BLOCKED for part in rel.parts):
+        raise ValueError("Path is blocked")
+
+    return target
+
+
+def read_file(root: str, user_path: str, max_chars: int = 8000) -> str:
+    try:
+        path = safe_path(root, user_path)
+    except ValueError as e:
+        return str(e)
+
+    if not path.is_file():
+        return "Output is not a file"
+
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return "Could not read the file"
+
+    if len(text) > max_chars:
+        return text[:max_chars] + "\n...[truncated]"
+
+    return text
