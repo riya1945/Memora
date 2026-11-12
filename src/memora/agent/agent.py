@@ -5,7 +5,8 @@ from memora.tools.tools import (
     get_experiment,
     search_memory,
     save_memory,
-    list_categories
+    list_categories,
+    read_project_file
 )
 from memora.context.budget import ContextBudget
 from memora.context.tokenizer import TokenCounter
@@ -35,15 +36,13 @@ llm = ChatOllama(
     model="qwen3:4b",temperature=0,num_ctx=4096
 )
 
-
-
-
 tools = [
     search_project,
     get_experiment,
     search_memory,
     save_memory,
-    list_categories
+    list_categories,
+    read_project_file
 ]
 
 tool_node=ToolNode(tools)
@@ -75,9 +74,7 @@ tool_map = {
 }
 
 
-
-
-def run_agent(user_input,mode="everyday"):
+def run_agent(user_input,mode="everyday",project_root:str |None=None):
     if mode=="code":
         category="codebase"
         exclude_category=None
@@ -98,6 +95,11 @@ Current user request:
         prompt = user_input
 
     user_message = HumanMessage(content=prompt)
-    content=graph.invoke({"messages": [user_message]})
+    content=graph.invoke({"messages": [user_message]},
+                         config={
+                             "configurable":{
+                                 "project_root":project_root
+                             }
+                         })
     return content["messages"][-1].content
 

@@ -1,4 +1,4 @@
-from fastapi import FastAPI,BackgroundTasks
+from fastapi import FastAPI,BackgroundTasks,HTTPException
 from pydantic import BaseModel
 from memora.tools.tools import service
 from memora.codespace import index_project
@@ -25,19 +25,24 @@ class MemoryIn(BaseModel):
 
 @app.post("/agent")
 def agent(body:AgentIn):
-    project_list=service.store.list_projects()
-    name = "this project"
-    for pro in project_list:
-        if pro["id"] == body.project_id:
-            name = pro["name"]
-            break
-    print(body.mode, name)
 
     if body.mode=="code":
-        text = f"This is a question about the codebase of project {name}. Use search_memory with category 'codebase'.\n\n{body.message}"
+
+        project_name=service.store.get_project(body.project_id)
+        if not project_name:
+            raise HTTPException(status_code=404, detail="Project not found")
+        else:
+            name = project_name["name"]
+            root_path = project_name["root_path"]
+            text = f"This is a question about the codebase of project {name}. Use search_memory with category 'codebase'.\n\n{body.message}"
+        
     else:
         text=body.message    
-    message=run_agent(text,mode=body.mode).split("</think>")[-1].strip()
+    message = run_agent(
+    text,
+    mode=body.mode,
+    project_root=root_path if body.mode == "code" else None
+).split("</think>")[-1].strip()
     return {"answer": message}
     
 

@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from langchain_core.tools import tool
-
+from langchain_core.runnables import RunnableConfig
 from memora.memory.service import MemoryService
 from memora.memory.store import MemoryStore
 
@@ -93,3 +93,15 @@ def update_memory(old_memory_id: str, new_memory_id: str):
         "old_memory_id": str(result["old_mem"].id),
         "new_memory_id": str(result["new_mem"].id),
     }
+
+@tool
+def read_project_file(user_path: str, config: RunnableConfig) -> str:
+    """Read a file from the currently selected project."""
+    project_root=config.get("configurable", {}).get("project_root")
+    if not project_root:
+        return "No project is currently selected."
+    from memora.codespace import read_file  # to avoid circular import
+    file=read_file(project_root,user_path,max_chars=8000)
+    return file
+
+

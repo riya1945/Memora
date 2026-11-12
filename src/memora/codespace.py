@@ -3,6 +3,7 @@ from memora.tools.tools import service
 from pathlib import Path
 import ast
 
+
 SKIP_FILES = {"scratch_langgraph.py", "scratch_ollama.py", "test_supabase_connection.py"}
 IGNORED_DIRS = {".venv", ".git", "__pycache__", "node_modules", ".pytest_cache"}
 SOURCE_EXTENSIONS = {".py"}
@@ -77,7 +78,7 @@ def summarise_file(info: dict, description: str = "") -> str:
 
 def index_project(root: str, name: str) -> None:
     root_path = Path(root)
-    project_id = service.store.get_or_create_project(name)
+    project_id = service.store.get_or_create_project(name,root_path)
 
     existing = [
         mem for mem in service.store.list_memories(status="active")

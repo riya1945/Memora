@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
-
+from pathlib import Path
 from memora.database import get_supabase_client
 from memora.memory.models import Memory
 
@@ -226,28 +226,39 @@ class MemoryStore:
             "new_mem": new_memory,
             "status": "updated",
         }
-    def get_or_create_project(self, name: str) -> UUID:
+#Look for a project with the same name and owner_id.
+#If it exists, update its root_path.
+#If it doesn't exist, insert a new project with name, root_path, and owner_id.
+#Return the project's UUID in either case.
+
+    def get_or_create_project(self, name: str,root_path:str) -> UUID:
         if not self.use_supabase:
             raise NotImplementedError("Projects need Supabase mode.")
 
-        response = (
-        self.client.table("projects")
-        .select("id")
-        .eq("name", name)
-        .limit(1)
-        .execute()
-    )
-        if response.data:
-            return UUID(response.data[0]["id"])
-
-        response = (
-        self.client.table("projects")
-        .insert({"name": name, "owner_id": str(self.owner_id)})
-        .execute()
-    )
-        return UUID(response.data[0]["id"])
+      
+        check=self.client.table("projects").select("id").eq("name",name).eq("owner_id",str(self.owner_id)).limit(1).execute()
+        root_path=str(Path(root_path).resolve())
+        if check.data:
+            self.client.table("projects").update({
+    "root_path": root_path
+}).eq("name", name).eq("owner_id", str(self.owner_id)).execute()
+            return UUID(check.data[0]["id"])
+            
+        else:
+            data=self.client.table("projects").insert({"name":name,"root_path":root_path,"owner_id":str(self.owner_id)}).execute()
+            return UUID(data.data[0]["id"])
+    
     def list_projects(self):
         if not self.use_supabase:
             return []
-        response=self.client.table("projects").select("id","name").execute()
+        response=self.client.table("projects").select("id","name","root_path").eq("owner_id",str(self.owner_id)).execute()
         return response.data
+    
+    def get_project(self,project_id:UUID):
+        response=self.client.table("projects").select("id","name","root_path").eq("id",project_id).eq("owner_id",self.owner_id).execute()
+        if not response.data:
+            return None
+        else:
+            return response.data[0] 
+        
+        
