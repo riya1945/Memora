@@ -26,16 +26,18 @@ class MemoryIn(BaseModel):
 @app.post("/agent")
 def agent(body:AgentIn):
 
-    if body.mode=="code":
+    if body.mode == "code":
+        if not body.project_id:
+            raise HTTPException(status_code=400, detail="Project ID is required")
 
-        project_name=service.store.get_project(body.project_id)
+        project_name = service.store.get_project(body.project_id)
+
         if not project_name:
             raise HTTPException(status_code=404, detail="Project not found")
-        else:
-            name = project_name["name"]
-            root_path = project_name["root_path"]
-            text = f"This is a question about the codebase of project {name}. Use search_memory with category 'codebase'.\n\n{body.message}"
-        
+
+        name = project_name["name"]
+        root_path = project_name["root_path"]
+        text = f"This is a question about the codebase of project {name}. Use search_memory with category 'codebase'.\n\n{body.message}"
     else:
         text=body.message    
     message = run_agent(

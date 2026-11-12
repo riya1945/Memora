@@ -2,7 +2,7 @@ import os
 from memora.tools.tools import service
 from pathlib import Path
 import ast
-
+import difflib
 
 SKIP_FILES = {"scratch_langgraph.py", "scratch_ollama.py", "test_supabase_connection.py"}
 IGNORED_DIRS = {".venv", ".git", "__pycache__", "node_modules", ".pytest_cache"}
@@ -164,3 +164,13 @@ def read_file(root: str, user_path: str, max_chars: int = 8000) -> str:
         return text[:max_chars] + "\n...[truncated]"
 
     return text
+
+def generate_diff(user_path:str,old_content:str,new_content:str)->str:
+    diff=difflib.unified_diff(
+    old_content.splitlines(keepends=True),
+    new_content.splitlines(keepends=True),
+    fromfile=f"a/{user_path}",
+    tofile=f"b/{user_path}"
+)
+    changes="".join(diff)
+    return changes

@@ -104,4 +104,18 @@ def read_project_file(user_path: str, config: RunnableConfig) -> str:
     file=read_file(project_root,user_path,max_chars=8000)
     return file
 
+@tool
+def propose_edit(user_path: str,new_content: str,config: RunnableConfig) -> str:
+    """Propose changes to a project file and return a diff without modifying the file."""
+    project_root = config.get("configurable", {}).get("project_root")
+    if not project_root:
+        return "No project is currently selected."
+    from memora.codespace import read_file, generate_diff
+    old_content=read_file(project_root,user_path)
+    if old_content.startswith("Path is blocked") or old_content.startswith("Path is outside the project") or old_content.startswith("Output is not a file") or old_content.startswith("Could not read the file"):
+        return old_content
+    changes=generate_diff(user_path,old_content,new_content)
+    return changes
+    
+
 
