@@ -7,7 +7,8 @@ from memora.tools.tools import (
     save_memory,
     list_categories,
     read_project_file,
-    propose_edit
+    propose_edit,
+    run_project_tests
 )
 from memora.context.budget import ContextBudget
 from memora.context.tokenizer import TokenCounter
@@ -44,7 +45,8 @@ tools = [
     save_memory,
     list_categories,
     read_project_file,
-    propose_edit
+    propose_edit,
+    run_project_tests
 ]
 
 tool_node=ToolNode(tools)

@@ -119,3 +119,16 @@ def propose_edit(user_path: str,new_content: str,config: RunnableConfig) -> str:
     
 
 
+@tool
+def run_project_tests(config: RunnableConfig) -> str:
+    """Run pytest in the currently selected project and return the results."""
+
+    project_root = config.get("configurable", {}).get("project_root")
+
+    if not project_root:
+        return "No project is currently selected."
+
+    from memora.codespace import run_tests
+
+    result = run_tests(project_root)
+    return str(result)

@@ -2,7 +2,10 @@ import os
 from memora.tools.tools import service
 from pathlib import Path
 import ast
+import sys
 import difflib
+import subprocess
+
 
 SKIP_FILES = {"scratch_langgraph.py", "scratch_ollama.py", "test_supabase_connection.py"}
 IGNORED_DIRS = {".venv", ".git", "__pycache__", "node_modules", ".pytest_cache"}
@@ -185,3 +188,26 @@ def apply_edit(root:str,user_path:str,new_content:str):
         return str(e)
 
     return f"Successfully updated {user_path}"
+
+def run_tests(root:str):
+    root_path=Path(root).resolve()
+    if not root_path.is_dir():
+        return "Invalid project directory"
+    try:
+        result = subprocess.run(
+        [sys.executable, "-m", "pytest"],
+        cwd=root_path,
+        capture_output=True,
+        text=True,
+        timeout=120
+)
+    except subprocess.TimeoutExpired:
+        return "Tests timed out after 60 seconds"
+    output = result.stdout[-10000:]
+    errors = result.stderr[-5000:]  
+    status = "passed" if result.returncode == 0 else "failed"
+    return {
+        "status":status,
+        "output": output,
+        "errors":errors
+    }
