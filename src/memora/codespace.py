@@ -174,3 +174,14 @@ def generate_diff(user_path:str,old_content:str,new_content:str)->str:
 )
     changes="".join(diff)
     return changes
+
+def apply_edit(root:str,user_path:str,new_content:str):
+    try:
+        target=safe_path(root,user_path)
+        if not target.is_file():
+            return "File does not exist"
+        target.write_text(new_content,encoding="utf-8")
+    except ValueError as e:
+        return str(e)
+
+    return f"Successfully updated {user_path}"

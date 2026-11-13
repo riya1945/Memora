@@ -1,7 +1,7 @@
 from fastapi import FastAPI,BackgroundTasks,HTTPException
 from pydantic import BaseModel
 from memora.tools.tools import service
-from memora.codespace import index_project
+from memora.codespace import index_project,apply_edit
 from memora.agent.agent import run_agent
 from fastapi.staticfiles import StaticFiles
 
@@ -10,6 +10,11 @@ app=FastAPI()
 class Indexin(BaseModel):
     root:str
     name:str
+class ApplyEditIn(BaseModel):
+    project_id:str
+    user_path:str
+    new_content:str
+
 
 class AgentIn(BaseModel):
     message: str
@@ -97,6 +102,16 @@ def search(q:str,category:str | None=None, k:int=5):
 @app.get("/categories")
 def categories():
     return [{"category": c} for c in service.store.list_categories()]
+
+@app.post("/apply_edit")
+def apply_edit_endpoint(body:ApplyEditIn):
+    project = service.store.get_project(body.project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    root_path = project["root_path"]
+    result=apply_edit(root_path,body.user_path,body.new_content)
+    return {"result": result}
+    
 
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
