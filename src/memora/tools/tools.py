@@ -145,3 +145,13 @@ def inspect_git_changes(config: RunnableConfig) -> str:
 
     result=git_diff(project_root)
     return str(result)
+
+@tool
+def open_project_file(user_path: str, config: RunnableConfig) -> str:
+    "open a project file from vscode"
+    project_root=config.get("configurable",{}).get("project_root")
+    if not project_root:
+        return "No project is currently selected."
+    from memora.codespace import open_vscode
+    result=open_vscode(project_root,user_path)
+    return str(result)

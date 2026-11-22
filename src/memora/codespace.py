@@ -5,7 +5,9 @@ import ast
 import sys
 import difflib
 import subprocess
+from dotenv import load_dotenv
 
+load_dotenv()
 
 SKIP_FILES = {"scratch_langgraph.py", "scratch_ollama.py", "test_supabase_connection.py"}
 IGNORED_DIRS = {".venv", ".git", "__pycache__", "node_modules", ".pytest_cache"}
@@ -228,4 +230,30 @@ def git_diff(root):
     return {"output":output,"error":error}
 
 
+def open_vscode(root:str,user_path:str):
+    try:
+        path=safe_path(root,user_path)
+    except ValueError as e:
+        return str(e)
+        
 
+    if not path.is_file():
+        return "File does not exist"
+    vscode_path = os.environ.get("VSCODE_EXECUTABLE")
+    
+    if not vscode_path:
+        return "vscode cannot open"
+
+    if not Path(vscode_path).is_file():
+        return "check the environment file variable"
+    try:
+        result=subprocess.Popen([vscode_path,
+    str(path)
+])
+    except FileNotFoundError:
+        return "Could not launch VS Code using the configured VSCODE_EXECUTABLE path."
+        
+    return f"Opened {user_path} in VScode"
+
+
+    
