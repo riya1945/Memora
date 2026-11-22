@@ -132,3 +132,16 @@ def run_project_tests(config: RunnableConfig) -> str:
 
     result = run_tests(project_root)
     return str(result)
+
+@tool
+def inspect_git_changes(config: RunnableConfig) -> str:
+    """Inspect staged and unstaged changes to tracked files."""
+
+    project_root=config.get("configurable",{}).get("project_root")
+
+    if not project_root:
+        return "No project is currently selected."
+    from memora.codespace import git_diff
+
+    result=git_diff(project_root)
+    return str(result)

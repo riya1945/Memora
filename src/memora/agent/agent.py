@@ -8,7 +8,8 @@ from memora.tools.tools import (
     list_categories,
     read_project_file,
     propose_edit,
-    run_project_tests
+    run_project_tests,
+    inspect_git_changes
 )
 from memora.context.budget import ContextBudget
 from memora.context.tokenizer import TokenCounter
@@ -46,7 +47,8 @@ tools = [
     list_categories,
     read_project_file,
     propose_edit,
-    run_project_tests
+    run_project_tests,
+    inspect_git_changes
 ]
 
 tool_node=ToolNode(tools)
@@ -74,7 +76,8 @@ tool_map = {
     "get_experiment": get_experiment,
     "search_memory": search_memory,
     "save_memory": save_memory,
-    "list_categories":list_categories
+    "list_categories":list_categories,
+    "inspect_git_changes": inspect_git_changes
 }
 
 

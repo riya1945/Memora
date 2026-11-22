@@ -211,3 +211,21 @@ def run_tests(root:str):
         "output": output,
         "errors":errors
     }
+
+def git_diff(root):
+    root_path = Path(root).resolve()
+
+    if not root_path.is_dir():
+        return "Invalid project directory"
+    result = subprocess.run(["git", "diff", "HEAD"], cwd=root_path, capture_output=True, text=True)
+    output=result.stdout
+    if len(output)>10000:
+        output=result.stdout[-10000:]+"\n...[truncated]"
+
+    error=result.stderr
+    if result.returncode !=0:
+        return error
+    return {"output":output,"error":error}
+
+
+
