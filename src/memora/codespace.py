@@ -152,6 +152,11 @@ def safe_path(root:str,user_path:str)->Path:
 
 
 def read_file(root: str, user_path: str, max_chars: int = 8000) -> str:
+    if not isinstance(max_chars, int) or isinstance(max_chars, bool):
+        return "max_chars must be an integer."
+    
+    if max_chars<0:
+        return "max_chars must be non-negative."
     try:
         path = safe_path(root, user_path)
     except ValueError as e:
@@ -164,6 +169,8 @@ def read_file(root: str, user_path: str, max_chars: int = 8000) -> str:
         text = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
         return "Could not read the file"
+    except OSError:
+       return "Could not access the file"
 
     if len(text) > max_chars:
         return text[:max_chars] + "\n...[truncated]"
@@ -188,6 +195,8 @@ def apply_edit(root:str,user_path:str,new_content:str):
         target.write_text(new_content,encoding="utf-8")
     except ValueError as e:
         return str(e)
+    except OSError:
+        return "Could not access the file"
 
     return f"Successfully updated {user_path}"
 
