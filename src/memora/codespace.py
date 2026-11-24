@@ -213,7 +213,9 @@ def run_tests(root:str):
         timeout=120
 )
     except subprocess.TimeoutExpired:
-        return "Tests timed out after 60 seconds"
+        return "Tests timed out after 120 seconds"
+    except OSError:
+        return "Could not execute tests"
     output = result.stdout[-10000:]
     errors = result.stderr[-5000:]  
     status = "passed" if result.returncode == 0 else "failed"
@@ -228,14 +230,20 @@ def git_diff(root):
 
     if not root_path.is_dir():
         return "Invalid project directory"
-    result = subprocess.run(["git", "diff", "HEAD"], cwd=root_path, capture_output=True, text=True)
+    try:
+        result = subprocess.run(["git", "diff", "HEAD"], cwd=root_path, capture_output=True, text=True,timeout=30)
+    except subprocess.TimeoutExpired:
+        return "Git diff timed out after 30 seconds"  
+    except OSError:
+        return "Could not execute Git"  
+    
     output=result.stdout
     if len(output)>10000:
         output=result.stdout[-10000:]+"\n...[truncated]"
 
     error=result.stderr
     if result.returncode !=0:
-        return error
+        return error or "Git diff failed"
     return {"output":output,"error":error}
 
 
