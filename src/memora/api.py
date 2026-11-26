@@ -14,6 +14,7 @@ class ApplyEditIn(BaseModel):
     project_id:str
     user_path:str
     new_content:str
+    expected_old_hash: str
 
 
 class AgentIn(BaseModel):
@@ -45,11 +46,20 @@ def agent(body:AgentIn):
         text = f"This is a question about the codebase of project {name}. Use search_memory with category 'codebase'.\n\n{body.message}"
     else:
         text=body.message    
-    message = run_agent(
+    result = run_agent(
     text,
     mode=body.mode,
-    project_root=root_path if body.mode == "code" else None
-).split("</think>")[-1].strip()
+    project_root=root_path if body.mode == "code" else None,
+    project_id=body.project_id
+)
+
+    messages = result["messages"]
+    for msg in messages:
+        print("TYPE:", type(msg).__name__)
+        print("NAME:", getattr(msg, "name", None))
+        print("CONTENT:", msg.content)
+        print("----------------")
+    message = messages[-1].content.split("</think>")[-1].strip()
     return {"answer": message}
     
 
@@ -109,7 +119,7 @@ def apply_edit_endpoint(body:ApplyEditIn):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     root_path = project["root_path"]
-    result=apply_edit(root_path,body.user_path,body.new_content)
+    result=apply_edit(root_path,body.user_path,body.new_content,body.expected_old_hash)
     return {"result": result}
     
 

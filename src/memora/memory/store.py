@@ -260,5 +260,87 @@ class MemoryStore:
             return None
         else:
             return response.data[0] 
-        
-        
+
+    def save_edit_proposal(
+    self,
+    project_id: UUID | str,
+    user_path: str,
+    original_hash: str,
+    new_content: str,
+    diff: str,
+):
+        if not self.use_supabase:
+            raise NotImplementedError(
+            "Edit proposals need Supabase mode."
+        )
+
+        payload = {
+        "owner_id": str(self.owner_id),
+"project_id": str(project_id),"user_path":user_path,"original_hash":original_hash,"new_content":new_content,"diff":diff
+    }
+
+        response = (
+        self.client.table("edit_proposals").insert(payload).execute()
+    )
+
+        if not response.data:
+            raise RuntimeError("Proposal was not saved.")
+
+        return response.data[0]    
+    def get_edit_proposal(self, proposal_id: UUID | str):
+        if not self.use_supabase:
+            raise NotImplementedError(
+            "Edit proposals need Supabase mode."
+        )
+
+        response = (
+        self.client.table("edit_proposals")
+        .select("*")
+        .eq("id", str(proposal_id)).eq("owner_id", str(self.owner_id))
+        .execute()
+    )
+
+        if not response.data:
+            return None
+
+        return response.data[0]   
+    def update_edit_proposal_status(
+    self,
+    proposal_id: UUID | str,
+    status: str,
+):
+        if not self.use_supabase:
+            raise NotImplementedError(
+            "Edit proposals need Supabase mode."
+        )
+
+        allowed_statuses = {"rejected", "applied", "failed"}
+
+    # Validate status
+        if status not in allowed_statuses:
+            raise ValueError("Invalid proposal status.")
+
+    # Build update payload
+        payload = {"status": status}
+
+        if status == "applied":
+            payload["applied_at"] = datetime.now(
+            timezone.utc
+        ).isoformat()
+
+    # Update only pending proposals belonging to this owner
+        response = (
+        self.client.table("edit_proposals")
+        .update(payload)
+        .eq("id", str(proposal_id))
+        .eq("owner_id", str(self.owner_id))
+        .eq("status", "pending")
+        .select("*")
+        .execute()
+    )
+
+    # Return updated row or None
+        if not response.data:
+            return None
+
+        return response.data[0]

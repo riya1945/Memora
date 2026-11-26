@@ -105,18 +105,78 @@ def read_project_file(user_path: str, config: RunnableConfig) -> str:
     return file
 
 @tool
-def propose_edit(user_path: str,new_content: str,config: RunnableConfig) -> str:
-    """Propose changes to a project file and return a diff without modifying the file."""
-    project_root = config.get("configurable", {}).get("project_root")
-    if not project_root:
-        return "No project is currently selected."
-    from memora.codespace import read_file, generate_diff
-    old_content=read_file(project_root,user_path)
-    if old_content.startswith("Path is blocked") or old_content.startswith("Path is outside the project") or old_content.startswith("Output is not a file") or old_content.startswith("Could not read the file"):
-        return old_content
-    changes=generate_diff(user_path,old_content,new_content)
-    return changes
-    
+def propose_edit(
+    user_path: str,
+    old_text: str,
+    new_text: str,
+    config: RunnableConfig
+):
+    """Propose a targeted code replacement. Never apply changes directly."""
+
+    configurable = config.get("configurable", {})
+    project_root = configurable.get("project_root")
+    project_id = configurable.get("project_id")
+
+    if not project_root or not project_id:
+        return {"error": "No project is currently selected."}
+
+    from memora.codespace import (
+        read_complete_file,
+        generate_diff,
+        get_file_hash,
+    )
+
+    try:
+        old_content = read_complete_file(project_root, user_path)
+    except ValueError as e:
+        return {"error": str(e)}
+
+    errors = {
+        "Path is outside the project",
+        "Path is blocked",
+        "Output is not a file",
+        "Could not read the file",
+        "Could not access the file",
+    }
+
+    if old_content in errors:
+        return {"error": old_content}
+
+    if not old_text:
+        return {"error": "old_text cannot be empty."}
+
+    if old_content.count(old_text) != 1:
+        return {
+            "error": "The old text must occur exactly once in the file."
+        }
+
+    new_content = old_content.replace(old_text, new_text, 1)
+
+    expected_old_hash = get_file_hash(old_content)
+
+    changes = generate_diff(
+        user_path,
+        old_content,
+        new_content,
+    )
+
+    try:
+        proposal = service.store.save_edit_proposal(
+            project_id=project_id,
+            user_path=user_path,
+            original_hash=expected_old_hash,
+            new_content=new_content,
+            diff=changes,
+        )
+    except Exception as e:
+        return {"error": f"Could not save proposal: {str(e)}"}
+
+    return {
+        "proposal_id": proposal["id"],
+        "status": proposal["status"],
+        "diff": proposal["diff"],
+        "message": "Edit proposal created. Awaiting user approval.",
+    }
 
 
 @tool

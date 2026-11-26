@@ -87,7 +87,7 @@ tool_map = {
 }
 
 
-def run_agent(user_input,mode="everyday",project_root:str |None=None):
+def run_agent(user_input,mode="everyday",project_root:str |None=None,project_id:str|None=None):
     if mode=="code":
         category="codebase"
         exclude_category=None
@@ -111,8 +111,8 @@ Current user request:
     content=graph.invoke({"messages": [user_message]},
                          config={
                              "configurable":{
-                                 "project_root":project_root
+                                 "project_root":project_root,"project_id":project_id
                              }
                          })
-    return content["messages"][-1].content
+    return content
 

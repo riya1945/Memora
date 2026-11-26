@@ -6,6 +6,7 @@ import sys
 import difflib
 import subprocess
 from dotenv import load_dotenv
+import hashlib
 
 load_dotenv()
 
@@ -13,6 +14,13 @@ SKIP_FILES = {"scratch_langgraph.py", "scratch_ollama.py", "test_supabase_connec
 IGNORED_DIRS = {".venv", ".git", "__pycache__", "node_modules", ".pytest_cache"}
 SOURCE_EXTENSIONS = {".py"}
 BLOCKED={".env",".git",".venv"}
+
+def get_file_hash(content:str):
+    converted_text=content.encode("utf-8")
+    file_hash=hashlib.sha256(converted_text).hexdigest()
+    return file_hash
+
+
 
 def list_source_files(root: str) -> list[Path]:
     root_path = Path(root)
@@ -149,7 +157,19 @@ def safe_path(root:str,user_path:str)->Path:
         raise ValueError("Path is blocked")
 
     return target
+def read_complete_file(root: str, user_path: str) -> str:
+    target = safe_path(root, user_path)   # raises ValueError if outside or blocked
 
+    if not target.is_file():
+        raise ValueError("Output is not a file")
+
+    try:
+        return target.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        raise ValueError("Could not read the file")
+    except OSError:
+        raise ValueError("Could not access the file")
+    
 
 def read_file(root: str, user_path: str, max_chars: int = 8000) -> str:
     if not isinstance(max_chars, int) or isinstance(max_chars, bool):
@@ -187,16 +207,40 @@ def generate_diff(user_path:str,old_content:str,new_content:str)->str:
     changes="".join(diff)
     return changes
 
-def apply_edit(root:str,user_path:str,new_content:str):
+def apply_edit(
+    root: str,
+    user_path: str,
+    new_content: str,
+    expected_old_hash: str
+):
+    temp_path = None
+
     try:
-        target=safe_path(root,user_path)
+        target = safe_path(root, user_path)
+
         if not target.is_file():
             return "File does not exist"
-        target.write_text(new_content,encoding="utf-8")
+
+        content = target.read_text(encoding="utf-8")
+        current_hash = get_file_hash(content)
+
+        if current_hash != expected_old_hash:
+            return "File has changed since the proposal. Please generate a new proposal."
+
+        temp_path = target.with_name(target.name + ".tmp")
+
+        temp_path.write_text(new_content, encoding="utf-8")
+        temp_path.replace(target)
+
     except ValueError as e:
         return str(e)
-    except OSError:
+
+    except (OSError, UnicodeDecodeError):
         return "Could not access the file"
+
+    finally:
+        if temp_path is not None and temp_path.exists():
+            temp_path.unlink()
 
     return f"Successfully updated {user_path}"
 
