@@ -360,3 +360,25 @@ class MemoryStore:
             return None
 
         return response.data[0].get("root_path")
+    def list_pending_proposals(
+    self,
+    project_id: UUID | str,
+    created_after: datetime | None = None
+):
+        if not self.use_supabase:
+            raise NotImplementedError("Edit proposals need Supabase mode.")
+
+        query = (
+        self.client.table("edit_proposals")
+        .select("*")
+        .eq("project_id", str(project_id))
+        .eq("owner_id", str(self.owner_id))
+        .eq("status", "pending")
+    )
+
+        if created_after:
+            query = query.gte("created_at", created_after.isoformat())
+
+        response = query.order("created_at").execute()
+
+        return response.data or []

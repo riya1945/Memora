@@ -4,6 +4,8 @@ from memora.tools.tools import service
 from memora.codespace import index_project,apply_edit
 from memora.agent.agent import run_agent
 from fastapi.staticfiles import StaticFiles
+from datetime import datetime, timezone
+
 
 app=FastAPI()
 
@@ -29,38 +31,72 @@ class MemoryIn(BaseModel):
     confidence: float = 0.9
     category: str | None = None
 
+
 @app.post("/agent")
-def agent(body:AgentIn):
+def agent(body: AgentIn):
+
+    request_started_at = datetime.now(timezone.utc)
 
     if body.mode == "code":
         if not body.project_id:
-            raise HTTPException(status_code=400, detail="Project ID is required")
+            raise HTTPException(
+                status_code=400,
+                detail="Project ID is required"
+            )
 
         project_name = service.store.get_project(body.project_id)
 
         if not project_name:
-            raise HTTPException(status_code=404, detail="Project not found")
+            raise HTTPException(
+                status_code=404,
+                detail="Project not found"
+            )
 
         name = project_name["name"]
         root_path = project_name["root_path"]
-        text = f"This is a question about the codebase of project {name}. Use search_memory with category 'codebase'.\n\n{body.message}"
+
+        text = (
+            f"This is a question about the codebase of project {name}. "
+            "Use search_memory with category 'codebase'.\n\n"
+            f"{body.message}"
+        )
     else:
-        text=body.message    
+        text = body.message
+
     result = run_agent(
-    text,
-    mode=body.mode,
-    project_root=root_path if body.mode == "code" else None,
-    project_id=body.project_id
-)
+        text,
+        mode=body.mode,
+        project_root=root_path if body.mode == "code" else None,
+        project_id=body.project_id
+    )
 
     messages = result["messages"]
-    for msg in messages:
-        print("TYPE:", type(msg).__name__)
-        print("NAME:", getattr(msg, "name", None))
-        print("CONTENT:", msg.content)
-        print("----------------")
     message = messages[-1].content.split("</think>")[-1].strip()
-    return {"answer": message}
+
+    proposals = []
+
+    if body.mode == "code":
+        proposals = service.store.list_pending_proposals(
+            body.project_id,
+            created_after=request_started_at
+        )
+
+    proposal_data = [
+        {
+            "id": p["id"],
+            "user_path": p["user_path"],
+            "diff": p["diff"],
+            "status": p["status"],
+            "created_at": p["created_at"]
+        }
+        for p in proposals
+    ]
+
+    return {
+        "answer": message,
+        "proposals": proposal_data
+    }
+
     
 
 @app.post("/index")

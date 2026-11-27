@@ -171,7 +171,7 @@ def read_complete_file(root: str, user_path: str) -> str:
         raise ValueError("Could not access the file")
     
 
-def read_file(root: str, user_path: str, max_chars: int = 8000) -> str:
+def read_file(root: str, user_path: str, max_chars: int = 9500) -> str:
     if not isinstance(max_chars, int) or isinstance(max_chars, bool):
         return "max_chars must be an integer."
     
