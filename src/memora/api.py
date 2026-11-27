@@ -121,7 +121,36 @@ def apply_edit_endpoint(body:ApplyEditIn):
     root_path = project["root_path"]
     result=apply_edit(root_path,body.user_path,body.new_content,body.expected_old_hash)
     return {"result": result}
-    
 
+@app.post("/proposals/{proposal_id}/approve")
+def approve(proposal_id: str):
+    proposal=service.store.get_edit_proposal(proposal_id)
+    if not proposal:
+        raise HTTPException(404,"Proposal not found")
+    if proposal["status"]!="pending":
+        raise HTTPException(409,"Proposal is not pending")
+    project_root=service.store.get_project_root(project_id=proposal["project_id"])
+    if not project_root:
+        raise HTTPException(400, "Project has no stored root")
+    edit=apply_edit(project_root,proposal["user_path"],proposal["new_content"],proposal["original_hash"])
+    if edit.startswith("Successfully"):
+        service.store.update_edit_proposal_status(proposal_id,"applied")
+        return {"status":"applied","message":edit}
+    else:
+        raise HTTPException(409,edit)
+
+@app.post("/proposals/{proposal_id}/reject")
+def reject(proposal_id: str):
+    proposal = service.store.get_edit_proposal(proposal_id)
+    if not proposal:
+        raise HTTPException(404, "Proposal not found")
+    if proposal["status"] != "pending":
+        raise HTTPException(409, "Proposal is not pending")
+
+    updated = service.store.update_edit_proposal_status(proposal_id, "rejected")
+    if not updated:
+        raise HTTPException(409, "Proposal is not pending")
+
+    return {"status": "rejected"}
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

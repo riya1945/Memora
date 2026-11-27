@@ -316,11 +316,11 @@ class MemoryStore:
 
         allowed_statuses = {"rejected", "applied", "failed"}
 
-    # Validate status
+    
         if status not in allowed_statuses:
             raise ValueError("Invalid proposal status.")
 
-    # Build update payload
+    
         payload = {"status": status}
 
         if status == "applied":
@@ -328,7 +328,7 @@ class MemoryStore:
             timezone.utc
         ).isoformat()
 
-    # Update only pending proposals belonging to this owner
+    
         response = (
         self.client.table("edit_proposals")
         .update(payload)
@@ -339,8 +339,24 @@ class MemoryStore:
         .execute()
     )
 
-    # Return updated row or None
+    
         if not response.data:
             return None
 
         return response.data[0]
+
+    def get_project_root(self, project_id: UUID | str) -> str | None:
+        if not self.use_supabase:
+            return None
+
+        response = (
+        self.client.table("projects")
+        .select("root_path")
+        .eq("id", str(project_id))
+        .limit(1)
+        .execute()
+    )
+        if not response.data:
+            return None
+
+        return response.data[0].get("root_path")
